@@ -1,0 +1,86 @@
+version: '3.4'
+# 定义四个服务nginx,php,mysql,redis
+services:
+  nginx:
+    # 依赖 ssrpanel 服务，意味着在启动 nginx 之前先启动 ssrpanel
+    depends_on:
+      - ssrpanel
+    image: nginx:latest
+    # 这样使 nginx 容器把网站文件和目录存放到主机目录中，持久化和方便管理
+    volumes:
+      # 将 ssrpan 源码同步到 nginx 容器内
+      - .:/usr/share/nginx/html
+      # nginx 配置文件
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/:/etc/nginx/conf.d/:ro
+    # nginx意外退出时自动重启
+    restart: always
+    # 映射80和443端口
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      frontend:
+        aliases:
+          - nginx
+    # 容器名称
+    container_name: nginx
+
+  ssrpanel:
+    depends_on:
+      - mysql
+      - redis
+    build: .
+    ports:
+      - "9000"
+    networks:
+      frontend:
+        aliases:
+          - panelfront
+      backend:
+         aliases:
+          - panelend
+    volumes:
+      - .:/usr/share/nginx/html
+      # Your php.ini
+      - ./php/php.ini-production:/usr/local/etc/php/php.ini:ro
+    restart: always
+    container_name: ssrpanel
+
+  # MySQL
+  mysql:
+    image: mysql:latest
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      backend:
+        aliases:
+          - mysql
+    restart: always
+    container_name: ssrpanl_mysql
+
+  # REDIS
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379"
+    volumes:
+      - db-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    networks:
+      backend:
+        aliases:
+          - redis
+    container_name: ssrpanl_redis
+
+volumes:
+  db-data:
+
+networks:
+  frontend:
+  backend:
