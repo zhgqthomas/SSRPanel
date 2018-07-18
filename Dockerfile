@@ -20,10 +20,8 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install mbstring
 
 WORKDIR /usr/share/nginx/html
-ADD . /usr/share/nginx/html
+
+COPY docker-entrypoint.sh /usr/local/bin/
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 EXPOSE 9000
-
-RUN php composer.phar install \
-	&& php artisan key:generate \
-	&& chmod -R 777 storage/ \
